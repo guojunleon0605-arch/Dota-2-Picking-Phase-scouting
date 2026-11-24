@@ -38,8 +38,8 @@ jobs:
           file DotaScouter.exe
           ls -lh DotaScouter.exe
           sha256sum DotaScouter.exe | tee DotaScouter.exe.sha256
-          file DotaScouter.exe | grep -q "PE32+ executable (GUI)"
-
+          file DotaScouter.exe | grep -q "PE32+ executable.*(GUI)"
+          
       - name: Upload DotaScouter.exe Artifact (Direct Download)
         uses: actions/upload-artifact@v4
         with:
