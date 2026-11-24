@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DotaScouter — Live Dota 2 Match Scouting</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Left Navigation Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-badge">DS</div>
+        <div>
+          <div class="brand-title">DotaScouter</div>
+          <div class="brand-sub">VAC-Safe Public API</div>
+        </div>
+      </div>
+
+      <nav class="nav-menu">
+        <button class="nav-item active" data-tab="match">
+          <span class="nav-icon">⚔</span>
+          <span>Match Stats</span>
+        </button>
+        <button class="nav-item" data-tab="history">
+          <span class="nav-icon">◷</span>
+          <span>History Snapshots</span>
+        </button>
+        <button class="nav-item" data-tab="settings">
+          <span class="nav-icon">⚙</span>
+          <span>Settings &amp; Connection</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="mini-status">
+          <span id="sidebar-gsi-dot" class="dot dot-idle"></span>
+          <span id="sidebar-gsi-text">GSI: Initializing...</span>
+        </div>
+        <button id="btn-quit" class="btn btn-ghost btn-sm" title="Shut down DotaScouter">Exit App</button>
+      </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <div class="main-area">
+      <!-- Top Live Status Strip -->
+      <header class="top-status-bar">
+        <div class="status-pills">
+          <span id="top-gsi-pill" class="pill pill-purple">GSI: Listening on :44444</span>
+          <span id="top-pick-pill" class="pill pill-live hidden">LIVE PICKING PHASE</span>
+          <span id="top-load-pill" class="pill pill-muted">0/0 players loaded</span>
+          <span id="top-match-pill" class="pill pill-muted hidden"></span>
+        </div>
+        <div class="top-right-controls">
+          <label class="toggle-wrap" title="Check OpenDota every 30s for a new match on your Friend ID">
+            <input type="checkbox" id="toggle-autosync" />
+            <span>30s Auto-Sync</span>
+          </label>
+          <span id="top-diag-text" class="diag-inline">Ready</span>
+        </div>
+      </header>
+
+      <!-- TAB 1: MATCH STATS -->
+      <section id="tab-match" class="tab-panel active">
+        <div class="action-bar">
+          <div class="view-toggle">
+            <button id="view-current" class="seg-btn active">Current Match</button>
+            <button id="view-snapshot" class="seg-btn">History Snapshot</button>
+          </div>
+
+          <div class="action-buttons">
+            <button id="btn-scan-lobby" class="btn btn-live" title="Read live Picking Phase roster from server_log.txt / console.log">Scan Live Draft</button>
+            <button id="btn-sync-latest" class="btn btn-primary">Sync Latest Match</button>
+            <button id="btn-refresh" class="btn btn-secondary">Refresh</button>
+            <button id="btn-copy-summary" class="btn btn-secondary">Copy Team Summary</button>
+            <button id="btn-toggle-id" class="btn btn-secondary">Toggle ID Column</button>
+            <button id="btn-open-query" class="btn btn-accent">Query by Match / Steam ID</button>
+          </div>
+        </div>
+
+        <div id="match-empty" class="empty-state">
+          <div class="empty-card">
+            <h2>Ready for Live Picking Phase Scouting</h2>
+            <p>
+              DotaScouter uses strictly live public APIs (OpenDota, STRATZ, Steam) with zero mock data.
+              During Dota 2 Hero Selection, GSI + the 500ms local log watcher auto-load all 10 players — or click <strong>Scan Live Draft</strong> / <strong>Query by Match / Steam ID</strong> anytime.
+            </p>
+            <div class="empty-actions">
+              <button id="empty-btn-scan" class="btn btn-live">Scan Live Draft</button>
+              <button id="empty-btn-query" class="btn btn-accent">Query Match / Steam IDs</button>
+              <button id="empty-btn-settings" class="btn btn-secondary">Setup GSI &amp; Friend ID</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="tables-wrap" class="tables-wrap hidden">
+          <!-- Radiant Table -->
+          <div class="team-card team-radiant">
+            <div class="team-header">
+              <span class="team-dot radiant-dot"></span>
+              <h3>RADIANT (Slots 1–5)</h3>
+              <span id="radiant-summary" class="team-meta"></span>
+            </div>
+            <div class="table-scroll">
+              <table class="scout-table" id="table-radiant">
+                <thead>
+                  <tr>
+                    <th class="col-slot">#</th>
+                    <th class="col-player">Player</th>
+                    <th class="col-last20">Last 20</th>
+                    <th class="col-kda">KDA</th>
+                    <th class="col-heroes">Top 3 Heroes (Last 20)</th>
+                    <th class="col-mvp">MVP (STRATZ)</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-radiant"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Dire Table -->
+          <div class="team-card team-dire">
+            <div class="team-header">
+              <span class="team-dot dire-dot"></span>
+              <h3>DIRE (Slots 6–10)</h3>
+              <span id="dire-summary" class="team-meta"></span>
+            </div>
+            <div class="table-scroll">
+              <table class="scout-table" id="table-dire">
+                <thead>
+                  <tr>
+                    <th class="col-slot">#</th>
+                    <th class="col-player">Player</th>
+                    <th class="col-last20">Last 20</th>
+                    <th class="col-kda">KDA</th>
+                    <th class="col-heroes">Top 3 Heroes (Last 20)</th>
+                    <th class="col-mvp">MVP (STRATZ)</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-dire"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: HISTORY SNAPSHOTS -->
+      <section id="tab-history" class="tab-panel">
+        <div class="panel-header">
+          <div>
+            <h2>History Snapshots</h2>
+            <p class="muted">Locally saved matches in SQLite (%APPDATA%\DotaScouter\history.db), indexed for Local Encounter Memory.</p>
+          </div>
+          <button id="btn-reload-history" class="btn btn-secondary">Reload List</button>
+        </div>
+        <div id="history-list" class="history-list"></div>
+      </section>
+
+      <!-- TAB 3: SETTINGS & CONNECTION -->
+      <section id="tab-settings" class="tab-panel">
+        <div class="panel-header">
+          <div>
+            <h2>Settings &amp; Connection</h2>
+            <p class="muted">All API requests run natively inside the compiled Go backend. Zero credentials or Steam login required.</p>
+          </div>
+        </div>
+
+        <form id="settings-form" class="settings-grid">
+          <div class="settings-card">
+            <h3>My Account &amp; Live Picking Phase Setup</h3>
+            <div class="field">
+              <label for="set-friend-id">My Steam Friend ID (32-bit or SteamID64)</label>
+              <input id="set-friend-id" type="text" placeholder="e.g. 86745912 or 76561198047011640" />
+              <small>Auto-converts SteamID64 to 32-bit Dota 2 Account ID for Sync Latest Match.</small>
+            </div>
+
+            <div class="field">
+              <label for="set-dota-path">Dota 2 Folder Path (auto-detected if blank)</label>
+              <input id="set-dota-path" type="text" placeholder="C:\Program Files (x86)\Steam\steamapps\common\dota 2 beta" />
+              <small id="detected-path-hint">Auto-detected: checking...</small>
+            </div>
+
+            <div class="inline-actions">
+              <button type="button" id="btn-install-gsi" class="btn btn-accent">1-Click Install GSI Config</button>
+              <button type="button" id="btn-clear-cache" class="btn btn-secondary">Clear 15-Min Cache</button>
+            </div>
+            <div id="gsi-install-feedback" class="feedback-box hidden"></div>
+            <small class="muted">
+              For automatic Picking Phase scouting: install GSI above, add <code>-gamestateintegration -condebug</code> to Dota 2 Steam Launch Options, and restart Dota 2.
+            </small>
+          </div>
+
+          <div class="settings-card">
+            <h3>Public API Keys (Optional)</h3>
+            <div class="field">
+              <label for="set-stratz-token">STRATZ GraphQL API Token (Free at stratz.com/api)</label>
+              <div class="input-with-btn">
+                <input id="set-stratz-token" type="password" placeholder="Paste Bearer token for MVP column" />
+                <button type="button" id="btn-test-stratz" class="btn btn-secondary">Test Token</button>
+              </div>
+              <small>Enables MVP counts &amp; parsed match coverage using mandatory <code>User-Agent: STRATZ_API</code>.</small>
+              <div id="stratz-test-feedback" class="feedback-box hidden"></div>
+            </div>
+
+            <div class="field">
+              <label for="set-opendota-key">OpenDota API Key (Optional — works keyless by default)</label>
+              <input id="set-opendota-key" type="password" placeholder="Optional key for higher rate limits" />
+            </div>
+
+            <div class="field">
+              <label for="set-steam-key">Steam Web API Key (Optional — for Account Age &amp; Dota 2 Hours)</label>
+              <input id="set-steam-key" type="password" placeholder="Optional key from steamcommunity.com/dev/apikey" />
+            </div>
+
+            <div class="inline-actions">
+              <button type="submit" class="btn btn-primary">Save Settings</button>
+            </div>
+            <div id="settings-save-feedback" class="feedback-box hidden"></div>
+          </div>
+        </form>
+      </section>
+
+      <!-- Bottom Live Status Bar -->
+      <footer class="bottom-status-bar">
+        <div class="bottom-left">
+          <span id="bot-gsi">GSI: Listening on :44444</span>
+          <span class="sep">|</span>
+          <span id="bot-log">Log Watcher: Idle</span>
+        </div>
+        <div class="bottom-right">
+          <span id="bot-counter">0/0 players loaded</span>
+          <span class="sep">|</span>
+          <span id="bot-diag">Ready</span>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Quick Query Modal -->
+  <div id="query-modal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>Query by Match ID or Steam Account IDs</h3>
+        <button id="btn-close-modal" class="btn btn-ghost btn-sm">✕</button>
+      </div>
+      <div class="modal-tabs">
+        <button class="seg-btn active" id="qtab-match">Dota 2 Match ID</button>
+        <button class="seg-btn" id="qtab-ids">1–10 Steam / Friend IDs</button>
+      </div>
+
+      <div id="qpanel-match" class="modal-body">
+        <label for="input-match-id">Enter a public Dota 2 Match ID (auto-loads Radiant 1–5 &amp; Dire 6–10)</label>
+        <input id="input-match-id" type="text" placeholder="e.g. 7985412345" />
+      </div>
+
+      <div id="qpanel-ids" class="modal-body hidden">
+        <label for="input-player-ids">Enter 1 to 10 Friend IDs, SteamID64s, or [U:1:XXXX] (comma or newline separated)</label>
+        <textarea id="input-player-ids" rows="5" placeholder="86745912&#10;189526077"></textarea>
+      </div>
+
+      <div id="query-error" class="feedback-box feedback-err hidden"></div>
+
+      <div class="modal-foot">
+        <button id="btn-cancel-modal" class="btn btn-secondary">Cancel</button>
+        <button id="btn-run-query" class="btn btn-primary">Run Live Scout</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
