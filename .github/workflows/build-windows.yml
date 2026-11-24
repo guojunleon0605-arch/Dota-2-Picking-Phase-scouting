@@ -1,0 +1,51 @@
+name: Build & Verify DotaScouter.exe (Windows PE32+ GUI)
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-windows-exe:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: DotaScouter-github-autobuild
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go 1.22
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Resolve Go modules
+        run: go mod tidy
+
+      - name: Run Live OpenDota Public & Private API Verification
+        run: go run ./cmd/verify_api
+
+      - name: Cross-Compile Standalone Windows GUI Executable (PE32+)
+        env:
+          GOOS: windows
+          GOARCH: amd64
+          CGO_ENABLED: 0
+        run: go build -trimpath -ldflags="-H windowsgui -s -w" -o DotaScouter.exe .
+
+      - name: Verify Binary Format, Size & SHA-256 Checksum
+        run: |
+          file DotaScouter.exe
+          ls -lh DotaScouter.exe
+          sha256sum DotaScouter.exe | tee DotaScouter.exe.sha256
+          file DotaScouter.exe | grep -q "PE32+ executable (GUI)"
+
+      - name: Upload DotaScouter.exe Artifact (Direct Download)
+        uses: actions/upload-artifact@v4
+        with:
+          name: DotaScouter-Windows-x64
+          path: |
+            DotaScouter-github-autobuild/DotaScouter.exe
+            DotaScouter-github-autobuild/DotaScouter.exe.sha256
+          retention-days: 90
+      
